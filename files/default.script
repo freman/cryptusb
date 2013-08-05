@@ -1,0 +1,27 @@
+#!/bin/bash
+
+IFCONFIG="/bin/ifconfig"
+ROUTE="/bin/route"
+
+[ -z "$1" ] && echo "Error: Should only be called by udhcpc" && exit 1
+
+[ -n "$broadcast" ] && BROADCAST="broadcast $broadcast"
+[ -n "$subnet" ] && NETMASK="netmask $subnet"
+
+case "$1" in
+	deconfig)
+		$IFCONFIG $interface 0.0.0.0 2> /dev/null
+		;;
+	renew|bound)
+		$IFCONFIG $interface $ip $BROADCAST $NETMASK
+		if [ -n "$router" ]; then
+			while $ROUTE del default gw 0.0.0.0 dev $interface 2> /dev/null; do :
+			done
+			for i in $router; do
+				$ROUTE add default gw $i dev $interface
+			done
+		fi
+		;;
+esac
+
+exit 0

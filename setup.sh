@@ -110,6 +110,9 @@ emerge --root /mnt net-misc/ntp net-dns/bind-tools dev-libs/libusb sys-apps/usbu
 cp "${FILES}"/{initdisk,stagedisk,net-setup} /mnt/usr/sbin/
 cp "${FILES}"/{motd,issue,resolv.conf} /mnt/etc
 
+mkdir -p /mnt/usr/share/udhcpc
+cp "${FILES}"/default.script /mnt/usr/share/udhcpc/default.script
+
 cp /mnt/usr/share/zoneinfo/UTC /mnt/etc/localtime
 echo UTC > /mnt/etc/timezone
 
