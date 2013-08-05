@@ -43,14 +43,14 @@ mkfs.ext2 -L GENTOO_USB_ROOT "${DISK}2"
 mkfs.vfat "${DISK}3"
 
 echo "Mounting /"
-mount "${DISK}2 /mnt
+mount "${DISK}2" /mnt
 
 echo "Grabbing a stage3"
 LINK=$(wget -q -O - http://mirror.internode.on.net/pub/gentoo/releases/amd64/current-stage3/* | grep 'stage3-amd64.*.tar.bz2"' | cut -d '"' -f 2)
 wget -q -O - "${LINK}" | tar -jxvp -C /mnt/
 
 echo "Mounting /boot"
-mount "${DISK}1 /mnt/boot
+mount "${DISK}1" /mnt/boot
 
 echo "Generating a kernel - go get a coffee"
 genkernel --e2fsprogs --firmware --busybox --disklabel --bootdir=/mnt/boot --no-symlink --all-ramdisk-modules --lukes --lvm --install all
@@ -72,7 +72,7 @@ for i in awk df tail; do
 done
 
 cp -L /bin/tr bin/
-cp -ar lib/modules /mnt/lib/ 
+cp -ar lib/modules /mnt/lib/
 
 ln -s ../bin/lvm sbin/
 
