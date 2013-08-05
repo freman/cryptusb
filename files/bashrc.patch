@@ -1,0 +1,17 @@
+--- /mnt/etc/bash/bashrc	2013-07-25 15:15:09.000000000 +1000
++++ /mnt/etc/bash/bashrc	2013-08-01 12:17:02.000000000 +1000
+@@ -14,6 +14,9 @@
+ 	return
+ fi
+ 
++# Disable history file
++HISTFILE=/dev/null
++
+ # Bash won't get SIGWINCH if another process is in the foreground.
+ # Enable checkwinsize so that bash will check the terminal size when
+ # it regains control.  #65623
+@@ -80,3 +83,4 @@
+ 
+ # Try to keep environment pollution down, EPA loves us.
+ unset use_color safe_term match_lhs
++

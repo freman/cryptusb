@@ -1,0 +1,109 @@
+#!/bin/bash
+
+MOUNT=${1-/mnt/cryptroot}
+
+FTP_MIRROR="ftp://mirror.internode.on.net/pub/gentoo/"
+FTP_STAGEPATH="${FTP_MIRROR}releases/amd64/current-stage3/"
+FTP_PORTAGEPATH="${FTP_MIRROR}releases/snapshots/current/"
+
+if [ ! -e $MOUNT ]; then
+	echo "${MOUNT} not found, are you feeling ok?"
+	exit 1
+fi
+
+echo "Looking for current stage3"
+STAGEFILE=$(curl -s ${FTP_STAGEPATH} | awk '{print $9}' | grep stage3 | head -n1)
+
+echo "Found ${STAGEFILE}, downloading"
+wget -q -O ${MOUNT}/${STAGEFILE} ${FTP_STAGEPATH}${STAGEFILE}
+
+echo "Extracting..."
+tar -jxpf ${MOUNT}/${STAGEFILE} -C ${MOUNT}
+rm ${MOUNT}/${STAGEFILE}
+
+echo "Looking for current portage snapshot"
+PORTAGEFILE=$(curl -s ${FTP_PORTAGEPATH} | awk '{print $9}' | grep portage | grep tar.xz | head -n1)
+
+echo "Found ${PORTAGEFILE}, downloading"
+wget -q -O ${MOUNT}/${PORTAGEFILE} ${FTP_PORTAGEPATH}${PORTAGEFILE}
+
+echo "Extracting..."
+tar -Jxpf ${MOUNT}/${PORTAGEFILE} -C ${MOUNT}/usr
+rm ${MOUNT}/${PORTAGEFILE}
+
+echo "Copying kernel modules"
+cp -ar /lib/modules ${MOUNT}/lib
+
+echo 'SYNC="rsync://mirror.internode.on.net/gentoo-portage"' >> ${MOUNT}/etc/portage/make.conf
+echo 'GENTOO_MIRRORS="http://mirror.internode.on.net/pub/gentoo"' >> ${MOUNT}/etc/portage/make.conf
+echo 'app-editors/vim acl nls cscope gpm perl python' >> ${MOUNT}/etc/portage/packages.use
+echo 'app-misc/mc edit nls slang xdg gpm' >> ${MOUNT}/etc/portage/packages.use
+echo 'sys-block/parted debug nls readline device-mapper' >> ${MOUNT}/etc/portage/packages.use
+
+cp /etc/resolv.conf ${MOUNT}/etc/resolv.conf
+
+mount -t proc none ${MOUNT}/proc
+mount -o bind /dev ${MOUNT}/dev
+
+cat > ${MOUNT}/setup.sh <<'EOF'
+env-update
+source /etc/profile
+
+echo "And now a couple of questions"
+
+passwd
+
+echo "What is this machines hostname?"
+read HOSTNAME
+echo "hostname=\"${HOSTNAME}\"" >> /etc/conf.d/hostname
+
+TIMEZONE="a2039ngadlsf"
+while [ ! -e "/usr/share/zoneinfo/${TIMEZONE}" ]; do
+	echo "What is this machines timezone (eg: Australia/Brisbane)"
+	read TIMEZONE
+	if [ ! -e "/usr/share/zoneinfo/${TIMEZONE}" ]; then
+		echo "Invalid, try again!"
+	fi
+done
+cp "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
+echo $TIMEZONE > /etc/timezone
+
+emerge --sync
+
+emerge dev-util/ccache
+echo 'CCACHE_SIZE="4G"' >> /etc/portage/make.conf
+echo 'FEATURES="$FEATURES ccache parallel-fetch userfetch"' >> /etc/portage/make.conf
+
+emerge sys-kernel/gentoo-sources
+gunzip /proc/config.gz -c > /usr/src/linux/.config
+
+emerge sys-fs/lvm2 sys-fs/cryptsetup sys-fs/dmraid www-client/links net-misc/curl \
+       app-editors/vim app-misc/mc app-admin/syslog-ng sys-process/vixie-cron \
+       app-portage/gentoolkit sys-apps/pciutils sys-apps/usbutils sys-fs/e2fsprogs \
+       sys-libs/gpm sys-fs/mdadm sys-apps/mlocate net-misc/dhcpcd sys-apps/sed net-misc/ntp \
+       sys-apps/ifplugd net-ftp/ftp sys-fs/ntfs3g net-misc/telnet-bsd app-misc/screen \
+       app-admin/sudo app-arch/rar app-arch/unrar net-misc/whois net-dns/bind-tools \
+       net-analyzer/traceroute net-firewall/iptables sys-block/parted app-portage/eix
+
+update-eix
+
+for i in syslog-ng vixie-cron gpm sshd ntp-client ntpd; do
+	rc-update add $i default
+done
+
+IFNAME=$(ifconfig | grep flags | grep -v LOOPBACK | cut -d ':' -f 1)
+if [ -n "${IFNAME}" ]; then
+	echo "config_${IFNAME}=\"dhcp\"" >> /etc/conf.d/net
+	ln -s /etc/init.d/net.lo /etc/init.d/net.$IFNAME
+	rc-update add net.$IFNAME default
+fi
+
+EOF
+
+chmod +x ${MOUNT}/setup.sh
+
+chroot ${MOUNT} /bin/bash -c "su - -c /setup.sh"
+
+rm ${MOUNT}/setup.sh
+
+echo "Jobs done."

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+verify_interface() {
+	ifconfig $1 &>/dev/null
+	echo $?
+}
+
+case "$1" in
+	dhcp)
+		if [ -z "$2" ]; then
+			echo "Usage: $0 dhcp {interface}"
+			exit 1
+		fi
+		if ifconfig $2 &>/dev/null; then
+			ifconfig $2 up
+			busybox udhcpc -i $2
+		else
+			echo "$2 doesn't seem right"
+		fi
+		;;
+	list)
+		ifconfig -a | grep flags | grep -v LOOPBACK | cut -d ":" -f 1
+		;;
+	*)
+		echo "Usage: $0 {list|dhcp}"
+		exit 1
+		;;
+esac

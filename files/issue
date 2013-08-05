@@ -1,0 +1,7 @@
+
+This is \n (\s \m \r) \t
+
+By default the root password is simply password, I recommend you
+change this and update /etc/issue
+
+

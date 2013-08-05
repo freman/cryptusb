@@ -1,0 +1,77 @@
+#!/bin/bash
+
+DEVICE=$1
+
+# Could probably do some magic with mount
+ROOT=$(df "$0" | tail -n1 | awk '{print $6}')
+KEYDIR="${ROOT}/var/db/keys"
+BKUPDIR="${ROOT}/var/db/backup"
+
+if [ ! -e $KEYDIR ]; then
+	ROOT="/newroot"
+	KEYDIR="${ROOT}/var/db/keys"
+	if [ ! -e $KEYDIR ]; then
+		echo "Can't find the filesystem root."
+		exit 1
+	fi
+fi
+
+mkdir -p $BKUPDIR
+
+DISK=$(basename "${DEVICE}")
+REMOVABLE="/sys/block/${DISK}/removable"
+
+if [ -e "${DEVICE}" ] && [ -e "${REMOVABLE}" ] && [ "$(cat ${REMOVABLE})" == "1" ]; then
+	echo "Disk is removable, not encrypting."
+	exit 1
+fi
+
+cryptsetup isLuks $DEVICE
+if [ "$?" == "0" ]; then
+	echo "Disk is already encrypted, not encrypting."
+	exit 1
+fi
+
+DID=$(hdparm -i ${DEVICE} | grep Model | cut -d "," -f 1,3 | tr -d ' ' | sha256sum | cut -d " " -f1)
+KEYFILE="${KEYDIR}/${DID}"
+
+if [ -e $KEYFILE ]; then
+	echo "Existing key file found, using it."
+else
+	echo "Generating key from /dev/random - this will take a sec."
+	dd if=/dev/urandom of=$KEYFILE bs=1024 count=4 &> /dev/null
+	chmod 0400 $KEYFILE
+	sync
+fi
+
+cryptsetup luksFormat $DEVICE $KEYFILE
+
+cryptsetup luksOpen $DEVICE "${DISK}-luks" --key-file $KEYFILE
+
+cryptsetup luksHeaderBackup --header-backup-file "${BKUPDIR}/${DID}" "${DISK}-luks"
+sync
+
+MAP="/dev/mapper/${DISK}-luks"
+
+if [ ! -e $MAP ]; then
+	echo "You didn't type YES in UPPERCASE did you?"
+	exit 1
+fi
+
+pvcreate "/dev/mapper/${DISK}-luks"
+vgcreate vg "/dev/mapper/${DISK}-luks"
+
+FREESPACE=$(pvdisplay --units m -C | grep "${DISK}-luks" | awk '{print $6}' | tr -d 'm' | cut -d '.' -f 1)
+MEMORY=$(free -m | grep Mem: | awk '{print $2}')
+SWAPSIZE=$(( $MEMORY * 2 ))
+DISKSIZE=$(( $FREESPACE - 5 - $SWAPSIZE ))
+
+lvcreate -L ${DISKSIZE}m -n root vg
+lvcreate -L ${SWAPSIZE}m -n swap vg
+
+mkfs.ext4 -L root /dev/vg/root
+mkswap -L swap /dev/vg/swap
+
+mkdir -p /mnt/cryptroot
+mount /dev/vg/root /mnt/cryptroot
+swapon /dev/vg/swap

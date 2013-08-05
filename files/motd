@@ -1,0 +1,4 @@
+Greetings and Welcome to Gentoo LiveUSB
+
+To get your network working run net-setup for more help
+To perform a basic gentoo install run stagedisk /path/to/mount
