@@ -105,7 +105,7 @@ EOF
 
 extlinux --device="${DISK}1" --install /mnt/boot/syslinux
 
-emerge --root /mnt net-misc/ntp net-dns/bind-tools dev-libs/libusb sys-apps/usbutils sys-apps/pciutils net-misc/curl www-client/links sys-fs/lvm2 sys-fs/cryptsetup app-misc/mc app-editors/vim sys-block/parted
+emerge --root /mnt net-misc/ntp net-dns/bind-tools dev-libs/libusb sys-apps/usbutils sys-apps/pciutils net-misc/curl www-client/links sys-fs/lvm2 sys-fs/cryptsetup app-misc/mc app-editors/vim sys-block/parted sys-fs/ntfs3g
 
 cp "${FILES}"/{initdisk,stagedisk,net-setup} /mnt/usr/sbin/
 cp "${FILES}"/{motd,issue,resolv.conf} /mnt/etc
@@ -116,10 +116,8 @@ echo UTC > /mnt/etc/timezone
 sed -i 's/localhost/usbboot/' /mnt/etc/conf.d/hostname
 
 patch -p0 < "${FILES}/bashrc.patch"
-chroot /mnt /bin/passwd
+chroot /mnt /bin/passwd << 'EOF'
+password
+password
+EOF
 
-# init supports
-# nocryptpivot=1
-# 	Boot and mount the encrypted disk but don't switch to it
-# noautocrypt=1
-# 	Don't mount the encrypted disk at all.
