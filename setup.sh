@@ -56,6 +56,9 @@ fi
 if [ ! -e /usr/bin/syslinux ]; then
 	EMERGE="${EMERGE} sys-boot/syslinux"
 fi
+if [ ! -e /usr/src/linux/Makefile ]; then
+	EMERGE="${EMERGE} gentoo-sources"
+fi
 if [ -n "${EMERGE}" ]; then
 	emerge ${EMERGE}
 fi
