@@ -43,7 +43,7 @@ done
 
 echo "Looking for current stage3"
 FTP_MIRROR_DIR="$FTP_STAGEPATH$(curl -s ${FTP_STAGEPATH} | grep '^d' | tail -n 1 | awk '{print $9}')/"
-STAGEFILE=$(curl -s ${FTP_MIRROR_DIR} | awk '{print $9}' | grep stage3 | head -n1)
+STAGEFILE=$(curl -s ${FTP_MIRROR_DIR} | awk '{print $9}' | grep "stage3-amd64.*.tar.bz2" | head -n1)
 
 echo "Found ${STAGEFILE}, downloading and extracting"
 wget -q -O - "${FTP_STAGEPATH}${STAGEFILE}" | tar -jxp -C ${MOUNT}
