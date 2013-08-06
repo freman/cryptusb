@@ -15,6 +15,24 @@ Basically you need a working gentoo install, ideally it'd be a fresh install (or
 3. run setup.sh
 4. go have coffee
 
+example
+--------
+
+```bash
+mkdir /foobar
+wget http://some/stage3.tbz
+tar -jxvpf stage3.tbz -C /foobar
+mkdir -p /foobar/usr/portage
+mount -o bind /usr/portage /foobar/usr/portage
+mount -o bind /dev /foobar/dev
+mount -t proc none /foobar/proc
+chroot /foobar /bin/bash
+USE="-blksha1 -gpg -iconv -nls -perl -python -pcre -threads -webdav" emerge git
+git clone https://github.com/freman/cryptusb.git
+cd cryptsetup
+./setup.sh
+```
+
 optional boot parameters
 ========
 
