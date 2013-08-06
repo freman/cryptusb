@@ -5,7 +5,7 @@ MOUNT=${1-/mnt/cryptroot}
 MIRROR="mirror.internode.on.net"
 HTTP_MIRROR="http://${MIRROR}/pub/gentoo/"
 FTP_MIRROR="ftp://${MIRROR}/pub/gentoo/"
-FTP_STAGEPATH="${FTP_MIRROR}releases/amd64/current-stage3/"
+FTP_STAGEPATH="${FTP_MIRROR}releases/amd64/current-stage3/default/"
 FTP_PORTAGEPATH="${FTP_MIRROR}releases/snapshots/current/"
 RSYNC_MIRROR="rsync://${MIRROR}/gentoo-portage"
 
@@ -42,7 +42,8 @@ while [ -z "${TIMEZONE}" ] || [ ! -e "/usr/share/zoneinfo/${TIMEZONE}" ]; do
 done
 
 echo "Looking for current stage3"
-STAGEFILE=$(curl -s ${FTP_STAGEPATH} | awk '{print $9}' | grep stage3 | head -n1)
+FTP_MIRROR_DIR="$FTP_STAGEPATH$(curl -s ${FTP_STAGEPATH} | grep '^d' | tail -n 1 | awk '{print $9}')/"
+STAGEFILE=$(curl -s ${FTP_MIRROR_DIR} | awk '{print $9}' | grep stage3 | head -n1)
 
 echo "Found ${STAGEFILE}, downloading and extracting"
 wget -q -O - "${FTP_STAGEPATH}${STAGEFILE}" | tar -jxp -C ${MOUNT}
