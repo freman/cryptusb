@@ -113,7 +113,7 @@ rm -fr inittmp
 
 echo "Setting up syslinux"
 
-dd bs=404 count=1 conv=notrunc if=/usr/share/syslinux/mbr.bin of=/dev/sdx &>/dev/null
+dd bs=404 count=1 conv=notrunc if=/usr/share/syslinux/mbr.bin of=/dev/${DISK} &>/dev/null
 
 mkdir /mnt/boot/syslinux
 
